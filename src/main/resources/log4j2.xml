@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="trace" monitorInterval="5">
+	<!--ThreadContext.put("loginId", "User1"); 除了User1之外其他的日志都默认是ERROR级别，USER1相关的日志是DEBUG级别  -->
+	<!-- DynamicThresholdFilter 从整体上控制日志默认输出级别，对于特定的值可以调整日志级别 -->
+	<DynamicThresholdFilter key="loginId"
+		defaultThreshold="ERROR" onMatch="ACCEPT" onMismatch="DENY">
+		<KeyValuePair key="User1" value="DEBUG" />
+	</DynamicThresholdFilter>
+	   
+	<Appenders>
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout  pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} MDC%X - %msg%n" />
+		</Console>
+		
+		<!--java命令行添加  -DlogPath=target -DserverName=NODE1 ；每个JAVA进程的日志都可以不一样啦。-->
+		<File name="appLog" fileName="${sys:logPath}/app_${sys:serverName}.log" append="true">
+			<PatternLayout header="${java:runtime} - ${java:vm} - ${java:os} " pattern="%n%t %-5p %c{2} - %m" />
+		</File>
+		
+		<!-- 我只记录USER1的日志信息，找生产环境BUG用的。 -->
+		<File name="testUserLog" fileName="target/testUserLog2" append="true">
+			<!-- ThreadContextMapFilter 控制文件的记录内容，符合条件才记录到文件，其他都拒绝写入日志 -->
+		    <ThreadContextMapFilter onMatch="ACCEPT"
+				onMismatch="DENY">
+				<KeyValuePair key="loginId" value="User1" />
+			</ThreadContextMapFilter>
+			<PatternLayout   pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5p %c{2} MDC%X - %m%n" />
+		</File>
+		
+		<!--${web:rootDir} 使用相对路径，就不用每次发布时都要找目录放日志啦。-->
+		<!-- <File name="webLog" fileName="${web:rootDir}/webapp.log" append="true">
+			<PatternLayout pattern="%t %-5p %c{2} - %m%n" />
+		</File> -->
+		
+	</Appenders>
+	
+	<Loggers>
+		<Root>
+			<AppenderRef ref="Console"/>
+			<AppenderRef ref="appLog"/> 
+			<AppenderRef ref="testUserLog"/>
+		</Root>
+	</Loggers>
+</Configuration>
